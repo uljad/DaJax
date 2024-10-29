@@ -1,36 +1,35 @@
+# Standard library imports
+import os
+import pprint
 from functools import partial
 from typing import Any, NamedTuple, Optional, Sequence, Tuple, Union
 
+# Third-party imports
 import chex
 import distrax
-import flax.linen as nn
 import jax
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
-import optax
-from brax.envs.wrappers.training import AutoResetWrapper, EpisodeWrapper
+import pandas as pd
+import wandb
 from flax import struct
+from flax.linen import nn
 from flax.linen.initializers import constant, orthogonal
+from flax.serialization import from_bytes
 from flax.training.train_state import TrainState as BaseTrainState
-from gymnax.environments import environment, spaces
-from gymnax.wrappers.purerl import GymnaxWrapper
 from jax.lib import xla_bridge
 
+# Brax imports
 from brax import envs
+from brax.envs.wrappers.training import AutoResetWrapper, EpisodeWrapper
 
+# Gymnax imports
+from gymnax.environments import environment, spaces
+from gymnax.wrappers.purerl import GymnaxWrapper
+
+# Platform check
 print(xla_bridge.get_backend().platform)
-import argparse
-import os
-import pickle
-import pprint
-
-import pandas as pd
-from flax.serialization import from_bytes, msgpack_serialize, to_state_dict
-
-import wandb
-from utils.loggers import load_checkpoint, save_checkpoint
-
 
 class TrainState(BaseTrainState):
     update_count: int

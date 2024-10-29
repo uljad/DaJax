@@ -80,8 +80,6 @@ echo <wandb_key> > setup/docker/wandb_key
 
 2. **Would be nice**:
    - [ ] Documentation for format conversion workflows
-   - [ ] Example notebooks
-   - [ ] A more detailed write-up
 
  😬 I will reorganize soon once I receive more feedback regarding the best ways people like to use such tools. 
 

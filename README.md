@@ -62,7 +62,6 @@ cd setup/docker && ./build.sh
 
 ```
 echo <wandb_key> > setup/docker/wandb_key
-
 ```
 
 👼 just add a `wandb_key` file without any extensions containing the key from the link above. the `.gitignore` is set up to ignore it and ensure the privacy of your key and your data. 

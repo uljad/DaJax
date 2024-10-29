@@ -1,5 +1,5 @@
-# DaJax
-
+# DaJax: Data Collection in the JAX ecosystem
+ 
 <p align="center">
     <img src="https://img.shields.io/badge/license-Apache2.0-blue.svg" /></a>
 </p>

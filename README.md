@@ -5,10 +5,6 @@
 </p>
 
 <h3 align="center">
-    <strong>Take charge of your datasets.</strong>
-</h3>
-
-<h3 align="center">
     <strong>From Policy Weights to Datasets!</strong>
 </h3>
 
@@ -66,7 +62,6 @@ cd setup/docker && ./build.sh
 
 ```
 echo <wandb_key> > setup/docker/wandb_key
-
 ```
 
 👼 just add a `wandb_key` file without any extensions containing the key from the link above. the `.gitignore` is set up to ignore it and ensure the privacy of your key and your data. 
@@ -80,8 +75,6 @@ echo <wandb_key> > setup/docker/wandb_key
 
 2. **Would be nice**:
    - [ ] Documentation for format conversion workflows
-   - [ ] Example notebooks
-   - [ ] A more detailed write-up
 
  😬 I will reorganize soon once I receive more feedback regarding the best ways people like to use such tools. 
 

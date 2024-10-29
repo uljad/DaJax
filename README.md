@@ -5,10 +5,6 @@
 </p>
 
 <h3 align="center">
-    <strong>Take charge of your datasets.</strong>
-</h3>
-
-<h3 align="center">
     <strong>From Policy Weights to Datasets!</strong>
 </h3>
 

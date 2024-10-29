@@ -36,13 +36,10 @@ def get_csv_files(directory):
 
 def normalize_array(arr):
     """
-
     Normalize the given array.
     return normalized array and min max values for each column
     """
-    # if arr.shape[1] != 11:
-    #     raise ValueError("The array must have exactly 11 columns.")
-    
+
     # Initialize the normalized array
     normalized_array = np.zeros_like(arr, dtype=np.float64)
     
@@ -66,23 +63,12 @@ def normalize_array_vals(arr, min_vals, max_vals):
     Normalize the given array.
     return normalized array and min max values for each column
     """
-    # if arr.shape[1] != 11:
-    #     raise ValueError("The array must have exactly 11 columns.")
-    
-    # Initialize the normalized array
-    # normalized_array = jnp.zeros_like(arr, dtype=np.float32)
-    
-    # Normalize each column
-    # for i in range(arr.shape[1]):
-    #     normalized_array[:, i] = (arr[:, i] - min_vals[i]) / (max_vals[i] - min_vals[i])
-    normalized_array = (arr - min_vals)/(max_vals - min_vals)
+    normalized_array = (arr - min_vals)/(max_vals - min_vals+1e-9)
     
     return normalized_array
 
 def denormalize_array(normalized_arr, min_vals, max_vals):
     # Extract the min and max values from the normalization constants
-    
-    
     # Denormalize each column
     denormalized_array = normalized_arr * (max_vals - min_vals) + min_vals
     
@@ -151,27 +137,21 @@ def create_action_observation_io(actions, old_observation, observation, rewards,
     return np.array(input_list), np.array(output_list)
 
 def generate_dataset_from_io(key,context_seqs, target_obs_seqs, validation_ratio):
-    ##shufle before splitting
-    # context_seqs_shuffled = context_seqs
-    # target_obs_seqs_shuffled = target_obs_seqs
+
     perm_idx = jax.random.permutation(key, context_seqs.shape[0])
     context_seqs_shuffled = context_seqs[perm_idx]
     target_obs_seqs_shuffled = target_obs_seqs[perm_idx]
-    # print("shpaes in generate dataset",context_seqs_shuffled.shape, target_obs_seqs_shuffled.shape)
+
     num_samples = context_seqs.shape[0]
     num_validation_samples = int(num_samples * validation_ratio)
-    # Set a random seed for reproducibility
-    x_train = context_seqs_shuffled[:-num_validation_samples].squeeze()
-    y_train = target_obs_seqs_shuffled[:-num_validation_samples].squeeze()
-    x_test = context_seqs_shuffled[-num_validation_samples:].squeeze()
-    y_test = target_obs_seqs_shuffled[-num_validation_samples:].squeeze()
 
+    x_train = context_seqs_shuffled[:-num_validation_samples]
+    y_train = target_obs_seqs_shuffled[:-num_validation_samples]
+    x_test = context_seqs_shuffled[-num_validation_samples:]
+    y_test = target_obs_seqs_shuffled[-num_validation_samples:]
     return x_train, y_train, x_test, y_test
 
 def normalize_observation(arr1, arr2, arr3, arr4):
-    # Ensure all arrays have 11 dimensions
-    if arr1.shape[1] != 11 or arr2.shape[1] != 11 or arr3.shape[1] != 11 or arr4.shape[1] != 11:
-        raise ValueError("All input arrays must have exactly 11 dimensions.")
     
     # Stack all arrays vertically
     combined = np.vstack((arr1, arr2, arr3, arr4))
@@ -180,14 +160,9 @@ def normalize_observation(arr1, arr2, arr3, arr4):
     normalization_constants = {}
 
     # Normalize each column in the combined array
-    for i in range(11):  # Iterate through each dimension
+    for i in range(4):  # Iterate through each dimension
         column_min = np.min(combined[:, i])
         column_max = np.max(combined[:, i])
-        
-        # if column_max == column_min:
-        #     combined[:, i] = 0  # Normalize to 0 if no variation
-        #     normalization_constants[f'dim_{i}'] = (column_min, 0)
-        # else:
         combined[:, i] = (combined[:, i] - column_min) / (column_max - column_min)
         normalization_constants[f'dim_{i}'] = (column_min, column_max)
     
@@ -248,32 +223,11 @@ def create_full_dataset(key,dir_path,validation_ratio = 0.2, normalize=False):
     x_train = np.concatenate(XR)
     y_train = np.concatenate(YR)
 
-    if normalize:
-
-        x_tr_obs = x_train[:, 3:]
-        x_te_obs = x_test[:, 3:]
-        y_tr_obs = y_train[:, :-1]
-        y_te_obs = y_test[:, :-1]
-        y_tr_reward = y_train[:, -1]
-        y_te_reward = y_test[:, -1]
-
-        x_tr_obs_norm, x_te_obs_norm, y_tr_obs_norm, y_te_obs_norm, normalization_constants_obs= normalize_observation(x_tr_obs, x_te_obs, y_tr_obs, y_te_obs)
-        y_tr_reward_norm, y_te_reward_norm, normalization_constants_reward = normalize_reward(y_tr_reward, y_te_reward)
-
-        x_train[:, 3:] = x_tr_obs_norm
-        x_test[:, 3:] = x_te_obs_norm
-        y_train[:, :-1] = y_tr_obs_norm
-        y_test[:, :-1] = y_te_obs_norm
-        y_train[:, -1] = y_tr_reward_norm
-        y_test[:, -1] = y_te_reward_norm
-
-        return x_train, y_train, x_test, y_test, normalization_constants_obs, normalization_constants_reward
-    else:
-        return x_train, y_train, x_test, y_test, None, None
+    return x_train, y_train, x_test, y_test
 
 def normalize_final_dataset(x_train, y_train, x_test, y_test):
-    x_tr_obs = x_train[:, 3:]
-    x_te_obs = x_test[:, 3:]
+    x_tr_obs = x_train[:, 1:]
+    x_te_obs = x_test[:, 1:]
     y_tr_obs = y_train[:, :-1]
     y_te_obs = y_test[:, :-1]
     y_tr_reward = y_train[:, -1]
@@ -282,8 +236,8 @@ def normalize_final_dataset(x_train, y_train, x_test, y_test):
     x_tr_obs_norm, x_te_obs_norm, y_tr_obs_norm, y_te_obs_norm, normalization_constants_obs= normalize_observation(x_tr_obs, x_te_obs, y_tr_obs, y_te_obs)
     y_tr_reward_norm, y_te_reward_norm, normalization_constants_reward = normalize_reward(y_tr_reward, y_te_reward)
 
-    x_train[:, 3:] = x_tr_obs_norm
-    x_test[:, 3:] = x_te_obs_norm
+    x_train[:, 1:] = x_tr_obs_norm
+    x_test[:, 1:] = x_te_obs_norm
     y_train[:, :-1] = y_tr_obs_norm
     y_test[:, :-1] = y_te_obs_norm
     y_train[:, -1] = y_tr_reward_norm

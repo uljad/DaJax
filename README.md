@@ -33,6 +33,22 @@ This modular design allows for flexible data collection while maintaining JAX's 
 - **Episodes** associated to a particular checkpoint during the policy training in the same file
 - **Corresponding image** to see that the terminations, observations and actions are aligned
 
+### Examples
+
+The files in the main directory save the results here:
+
+[**CSV files**](data/expert_data/) - each row is a tuple of  $(a_t, o_t, o_{t+1}, \text{Done}, r_{t+1})$ where:
+- $a_t$ is the action at time $t$
+- $o_t$ is the observation at time $t$
+- $o_{t+1}$ is the next observation
+- $\text{Done}$ is the terminal state flag
+- $r_{t+1}$ is the reward received
+ 
+
+[**Verification Media**](data/media/) - media to check that the data makes sense
+
+
+
 ## 🔩 Installation
 
 You can install DaJax and its dependencies using pip. Install all dependencies at once using:

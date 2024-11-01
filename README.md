@@ -27,9 +27,9 @@ To get policy rollouts using an Actor-Critic network:
 
 [`collect_brax.py`](collect_brax.py) for environments based on the [Brax Physics Enginge](https://github.com/google/brax/tree/main)
 
-[`collect_discrete.py`](collect_discrete.py) for discrete (categorical) action space on environments using [Gymnax](https://github.com/RobertTLange/gymnax/tree/main)
+[`collect_discrete.py`](collect_discrete.py) for discrete (```Categorical```) action space on environments using [Gymnax](https://github.com/RobertTLange/gymnax/tree/main)
 
-[`collect_continuous.py`](collect_continuous.py) for a continuous (multivariate Gaussian) action space on environments using [Gymnax](https://github.com/RobertTLange/gymnax/tree/main)
+[`collect_continuous.py`](collect_continuous.py) for a continuous (```MultivariateNormalDiag```) action space on environments using [Gymnax](https://github.com/RobertTLange/gymnax/tree/main)
 
 
 

@@ -13,7 +13,10 @@
 DaJax provides robust tools for collecting and managing data from reinforcement learning environments. The collection system is built around two main components:
 
 <p align="center">
-  <img src="animation.gif" alt="Data Collection Animation" wdith="480" height="360">
+  <img src="animation.gif" alt="Hopper Data" width="480" height="360">
+</p>
+<p align="center">
+  <em>Hopper Rollouts for 1.1 episodes at various policy checkpoint from randomly initialized policy</em>
 </p>
 
 ### Collectors

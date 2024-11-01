@@ -1,6 +1,5 @@
 # Standard library imports
 import os
-import pprint
 from functools import partial
 from typing import Any, NamedTuple, Optional, Sequence, Tuple, Union
 
@@ -14,7 +13,7 @@ import numpy as np
 import pandas as pd
 import wandb
 from flax import struct
-from flax.linen import nn
+import flax.linen as nn
 from flax.linen.initializers import constant, orthogonal
 from flax.serialization import from_bytes
 from flax.training.train_state import TrainState as BaseTrainState
@@ -33,186 +32,15 @@ from gymnax.wrappers.purerl import (
     LogWrapper
 )
 
+#loggers
+from utils.loggers import save_config, load_config
+
 # Platform check
 print(xla_bridge.get_backend().platform)
 
 
 class TrainState(BaseTrainState):
     update_count: int
-
-class BraxGymnaxWrapper:
-    def __init__(self, env_name, backend="positional"):
-        env = envs.get_environment(env_name=env_name, backend=backend, terminate_when_unhealthy=False)
-        env = EpisodeWrapper(env, episode_length=1000, action_repeat=1)
-        # env = AutoResetWrapper(env)
-        self._env = env
-        self.action_size = env.action_size
-        self.observation_size = (env.observation_size,)
-
-    def reset(self, key, params=None):
-        state = self._env.reset(key)
-        return state.obs, state
-
-    def step(self, key, state, action, params=None):
-        next_state = self._env.step(state, action)
-        return next_state.obs, next_state, next_state.reward, next_state.done > 0.5, {}
-
-    def observation_space(self, params):
-        return spaces.Box(
-            low=-jnp.inf,
-            high=jnp.inf,
-            shape=(self._env.observation_size,),
-        )
-
-    def action_space(self, params):
-        return spaces.Box(
-            low=-1.0,
-            high=1.0,
-            shape=(self._env.action_size,),
-        )
-
-class ClipAction(GymnaxWrapper):
-    def __init__(self, env, low=-1.0, high=1.0):
-        super().__init__(env)
-        self.low = low
-        self.high = high
-
-    def step(self, key, state, action, params=None):
-        """TODO: In theory the below line should be the way to do this."""
-        # action = jnp.clip(action, self.env.action_space.low, self.env.action_space.high)
-        action = jnp.clip(action, self.low, self.high)
-        # print("key in clip action", key.shape)
-        # print("actio nin clip action", action.shape)
-        return self._env.step(key, state, action, params)
-
-def log_eval(log_dict):
-    wandb.log(log_dict)
-    
-class VecEnv(GymnaxWrapper):
-    def __init__(self, env):
-        super().__init__(env)
-        self.reset = jax.vmap(self._env.reset, in_axes=(0, None))
-        self.step = jax.vmap(self._env.step, in_axes=(0, 0, 0, None))
-
-@struct.dataclass
-class NormalizeVecObsEnvState:
-    mean: jnp.ndarray
-    var: jnp.ndarray
-    count: float
-    env_state: environment.EnvState
-
-class NormalizeVecObservation(GymnaxWrapper):
-    def __init__(self, env):
-        super().__init__(env)
-
-    def reset(self, key, params=None):
-        obs, state = self._env.reset(key, params)
-        state = NormalizeVecObsEnvState(
-            mean=jnp.zeros_like(obs),
-            var=jnp.ones_like(obs),
-            count=1e-4,
-            env_state=state,
-        )
-        batch_mean = jnp.mean(obs, axis=0)
-        batch_var = jnp.var(obs, axis=0)
-        batch_count = obs.shape[0]
-
-        delta = batch_mean - state.mean
-        tot_count = state.count + batch_count
-
-        new_mean = state.mean + delta * batch_count / tot_count
-        m_a = state.var * state.count
-        m_b = batch_var * batch_count
-        M2 = m_a + m_b + jnp.square(delta) * state.count * batch_count / tot_count
-        new_var = M2 / tot_count
-        new_count = tot_count
-
-        state = NormalizeVecObsEnvState(
-            mean=new_mean,
-            var=new_var,
-            count=new_count,
-            env_state=state.env_state,
-        )
-
-        return (obs - state.mean) / jnp.sqrt(state.var + 1e-8), state
-
-    def step(self, key, state, action, params=None):
-        obs, env_state, reward, done, info = self._env.step(key, state.env_state, action, params)
-
-        batch_mean = jnp.mean(obs, axis=0)
-        batch_var = jnp.var(obs, axis=0)
-        batch_count = obs.shape[0]
-
-        delta = batch_mean - state.mean
-        tot_count = state.count + batch_count
-
-        new_mean = state.mean + delta * batch_count / tot_count
-        m_a = state.var * state.count
-        m_b = batch_var * batch_count
-        M2 = m_a + m_b + jnp.square(delta) * state.count * batch_count / tot_count
-        new_var = M2 / tot_count
-        new_count = tot_count
-
-        state = NormalizeVecObsEnvState(
-            mean=new_mean,
-            var=new_var,
-            count=new_count,
-            env_state=env_state,
-        )
-        return (obs - state.mean) / jnp.sqrt(state.var + 1e-8), state, reward, done, info
-
-@struct.dataclass
-class NormalizeVecRewEnvState:
-    mean: jnp.ndarray
-    var: jnp.ndarray
-    count: float
-    return_val: float
-    env_state: environment.EnvState
-
-class NormalizeVecReward(GymnaxWrapper):
-
-    def __init__(self, env, gamma):
-        super().__init__(env)
-        self.gamma = gamma
-
-    def reset(self, key, params=None):
-        obs, state = self._env.reset(key, params)
-        batch_count = obs.shape[0]
-        state = NormalizeVecRewEnvState(
-            mean=0.0,
-            var=1.0,
-            count=1e-4,
-            return_val=jnp.zeros((batch_count,)),
-            env_state=state,
-        )
-        return obs, state
-
-    def step(self, key, state, action, params=None):
-        obs, env_state, reward, done, info = self._env.step(key, state.env_state, action, params)
-        return_val = (state.return_val * self.gamma * (1 - done) + reward)
- 
-        batch_mean = jnp.mean(return_val, axis=0)
-        batch_var = jnp.var(return_val, axis=0)
-        batch_count = obs.shape[0]
-
-        delta = batch_mean - state.mean
-        tot_count = state.count + batch_count
-
-        new_mean = state.mean + delta * batch_count / tot_count
-        m_a = state.var * state.count
-        m_b = batch_var * batch_count
-        M2 = m_a + m_b + jnp.square(delta) * state.count * batch_count / tot_count
-        new_var = M2 / tot_count
-        new_count = tot_count
-
-        state = NormalizeVecRewEnvState(
-            mean=new_mean,
-            var=new_var,
-            count=new_count,
-            return_val=return_val,
-            env_state=env_state,
-        )
-        return obs, state, reward / jnp.sqrt(state.var + 1e-8), done, info
 
 @struct.dataclass
 class LogEnvState:
@@ -233,7 +61,6 @@ class LogWrapper(GymnaxWrapper):
     def reset(
         self, key: chex.PRNGKey, params: Optional[environment.EnvParams] = None
     ) -> Tuple[chex.Array, environment.EnvState]:
-        print("key in log warapper", key.shape)
         obs, env_state = self._env.reset(key, params)
         state = LogEnvState(env_state, 0, 0, 0, 0, 0)
         return obs, state
@@ -246,7 +73,6 @@ class LogWrapper(GymnaxWrapper):
         action: Union[int, float],
         params: Optional[environment.EnvParams] = None,
     ) -> Tuple[chex.Array, environment.EnvState, float, bool, dict]:
-        print("key in log warapper", key.shape)
         obs, env_state, reward, done, info = self._env.step(
             key, state.env_state, action, params
         )
@@ -307,7 +133,6 @@ class ActorCritic(nn.Module):
 
         return pi, jnp.squeeze(critic, axis=-1)
 
-
 class Transition(NamedTuple):
     done: jnp.ndarray
     action: jnp.ndarray
@@ -366,18 +191,9 @@ def collect_policy_data_manual_reset(config,out, checkpoint_id, collect_random=F
     observations = run_data[2]
     rewards = run_data[3]
     dones = run_data[4]
-
-    print("from run data")
-    print(actions.shape)
-    print(old_obs.shape)
-    print(observations.shape)
-    print(dones.shape)
     
-    session_name = f"pendulum_{config['ENV_NAME']}_timesteps_{TIMESTEPS}_{str(checkpoint_id)}"
-    # if collect_random:
-    #     session_name = f"brax_{config['ENV_NAME']}_timesteps_{TIMESTEPS}_random_{str(checkpoint_id)}"
+    session_name = f"{config['ENV_NAME']}_timesteps_{TIMESTEPS}_{str(checkpoint_id)}"
     print(session_name)
-    # actions_arr = jnp.expand_dims(actions, axis=1)
     actions_arr = actions
     old_obs_arr = old_obs
     observations_arr = observations
@@ -403,9 +219,7 @@ def collect_policy_data_manual_reset(config,out, checkpoint_id, collect_random=F
     axs[3].set_title('Rewards')
     axs[3].plot(rewards[0:FINAL_INDEX])
     plt.tight_layout()
-    # Show the plot
     plt.savefig(f"data/media/{session_name}.png")
-    # plt.show()
 
     '''
     Saving to a CSV for the World Model Training
@@ -424,21 +238,32 @@ if __name__=="__main__":
     wandb.login()
     api = wandb.Api()
     
-    run_name = "path"
-
-    for id in range(0,1400,60):
-        print(id)
-        artifact_name = "path"+str(id)
-        run = api.run(run_name)
-        config = run.config
-        pprint.pprint(config)
-        artifact = api.artifact(artifact_name)
-        artifact_dir = artifact.download()
-        with open(os.path.join(artifact_dir,"checkpoint.msgpack"), "rb") as infile:
-            byte_data = infile.read()
+    # put the wandb run_name here to use your own artifact
+    run_name = ""
+    artifact_name = ""
+     
+    for id in range(0,210,50):
+        if not run_name or not artifact_name:
+            print("========================Running Example============================")
+            ENV_NAME = "Pendulum-v1"
+            config = load_config(f"configs/config_{ENV_NAME}.json")
+            with open(f"artifacts/{ENV_NAME}/checkpoint:v{id}/checkpoint.msgpack", "rb") as infile:
+                byte_data = infile.read()
+        else:
+            print("========================You need to specify run and artifact name============================")
+            artifact_path = "/".join(run_name.split("/")[:-1])+"/"+artifact_name+":v"+str(id)
+            run = api.run(run_name)
+            config = run.config
+            save_config(config, f"configs/config_{config['ENV_NAME']}.json")
+            artifact = api.artifact(artifact_path)
+            artifact_dir = artifact.download()
+            with open(os.path.join(artifact_dir,"checkpoint.msgpack"), "rb") as infile:
+                byte_data = infile.read()
+            
         out = byte_data
         if id == 0:
             collect_policy_data_manual_reset(config,out,id, True)
         else:
             collect_policy_data_manual_reset(config,out,id, False)
+        
     wandb.finish()

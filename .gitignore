@@ -1,4 +1,3 @@
-artifacts/
 wandb/
 __pycache__/
 checkpoint.msgpack

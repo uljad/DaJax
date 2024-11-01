@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import wandb
 from flax import struct
-from flax.linen import nn
+import flax.linen as nn
 from flax.linen.initializers import constant, orthogonal
 from flax.serialization import from_bytes
 from flax.training.train_state import TrainState as BaseTrainState
@@ -27,6 +27,9 @@ from brax.envs.wrappers.training import AutoResetWrapper, EpisodeWrapper
 # Gymnax imports
 from gymnax.environments import environment, spaces
 from gymnax.wrappers.purerl import GymnaxWrapper
+
+#loggers
+from utils.loggers import save_config, load_config
 
 # Platform check
 print(xla_bridge.get_backend().platform)
@@ -72,11 +75,7 @@ class ClipAction(GymnaxWrapper):
         self.high = high
 
     def step(self, key, state, action, params=None):
-        """TODO: In theory the below line should be the way to do this."""
-        # action = jnp.clip(action, self.env.action_space.low, self.env.action_space.high)
         action = jnp.clip(action, self.low, self.high)
-        # print("key in clip action", key.shape)
-        # print("actio nin clip action", action.shape)
         return self._env.step(key, state, action, params)
 
 def log_eval(log_dict):
@@ -227,7 +226,6 @@ class LogWrapper(GymnaxWrapper):
     def reset(
         self, key: chex.PRNGKey, params: Optional[environment.EnvParams] = None
     ) -> Tuple[chex.Array, environment.EnvState]:
-        print("key in log warapper", key.shape)
         obs, env_state = self._env.reset(key, params)
         state = LogEnvState(env_state, 0, 0, 0, 0, 0)
         return obs, state
@@ -240,7 +238,6 @@ class LogWrapper(GymnaxWrapper):
         action: Union[int, float],
         params: Optional[environment.EnvParams] = None,
     ) -> Tuple[chex.Array, environment.EnvState, float, bool, dict]:
-        print("key in log warapper", key.shape)
         obs, env_state, reward, done, info = self._env.step(
             key, state.env_state, action, params
         )
@@ -361,16 +358,8 @@ def collect_policy_data_manual_reset(config,out, checkpoint_id, collect_random=F
     observations = run_data[2]
     rewards = run_data[3]
     dones = run_data[4]
-
-    print("from run data")
-    print(actions.shape)
-    print(old_obs.shape)
-    print(observations.shape)
-    print(dones.shape)
     
-    session_name = f"brax_{config['ENV_NAME']}_timesteps_{TIMESTEPS}_{str(checkpoint_id)}"
-    # if collect_random:
-    #     session_name = f"brax_{config['ENV_NAME']}_timesteps_{TIMESTEPS}_random_{str(checkpoint_id)}"
+    session_name = f"{config['ENV_NAME']}_timesteps_{TIMESTEPS}_{str(checkpoint_id)}"
     print(session_name)
     actions_arr = actions
     old_obs_arr = old_obs
@@ -397,9 +386,7 @@ def collect_policy_data_manual_reset(config,out, checkpoint_id, collect_random=F
     axs[3].set_title('Rewards')
     axs[3].plot(rewards[0:FINAL_INDEX])
     plt.tight_layout()
-    # Show the plot
     plt.savefig(f"data/media/{session_name}.png")
-    # plt.show()
 
     '''
     Saving to a CSV for the World Model Training
@@ -418,21 +405,32 @@ if __name__=="__main__":
     wandb.login()
     api = wandb.Api()
     
-    run_name = "path"
-
-    for id in range(0,242,5):
-        print(id)
-        artifact_name = "path"+str(id)
-        run = api.run(run_name)
-        config = run.config
-        pprint.pprint(config)
-        artifact = api.artifact(artifact_name)
-        artifact_dir = artifact.download()
-        with open(os.path.join(artifact_dir,"checkpoint.msgpack"), "rb") as infile:
-            byte_data = infile.read()
+    # put the wandb run_name here to use your own artifact
+    run_name = ""
+    artifact_name = ""
+     
+    for id in range(0,210,50):
+        if not run_name or not artifact_name:
+            print("========================Running Example============================")
+            ENV_NAME = "hopper"
+            config = load_config(f"configs/config_{ENV_NAME}.json")
+            with open(f"artifacts/{ENV_NAME}/checkpoint:v{id}/checkpoint.msgpack", "rb") as infile:
+                byte_data = infile.read()
+        else:
+            print("========================You need to specify run and artifact name============================")
+            artifact_path = "/".join(run_name.split("/")[:-1])+"/"+artifact_name+":v"+str(id)
+            run = api.run(run_name)
+            config = run.config
+            save_config(config, f"configs/config_{config['ENV_NAME']}.json")
+            artifact = api.artifact(artifact_path)
+            artifact_dir = artifact.download()
+            with open(os.path.join(artifact_dir,"checkpoint.msgpack"), "rb") as infile:
+                byte_data = infile.read()
+            
         out = byte_data
         if id == 0:
             collect_policy_data_manual_reset(config,out,id, True)
         else:
             collect_policy_data_manual_reset(config,out,id, False)
+        
     wandb.finish()

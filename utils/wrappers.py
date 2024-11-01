@@ -1,17 +1,12 @@
 from functools import partial
-from typing import Any, NamedTuple, Optional, Sequence, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 import chex
-import distrax
-import flax.linen as nn
 import jax
 import jax.numpy as jnp
-import matplotlib.pyplot as plt
-import numpy as np
 from brax import envs
-from brax.envs.wrappers.training import AutoResetWrapper, EpisodeWrapper
+from brax.envs.wrappers.training import EpisodeWrapper
 from flax import struct
-from flax.linen.initializers import constant, orthogonal
 from flax.training.train_state import TrainState as BaseTrainState
 from gymnax.environments import environment, spaces
 from gymnax.wrappers.purerl import GymnaxWrapper
@@ -58,14 +53,9 @@ class ClipAction(GymnaxWrapper):
         self.high = high
 
     def step(self, key, state, action, params=None):
-        """TODO: In theory the below line should be the way to do this."""
-        # action = jnp.clip(action, self.env.action_space.low, self.env.action_space.high)
         action = jnp.clip(action, self.low, self.high)
-        # print("key in clip action", key.shape)
-        # print("actio nin clip action", action.shape)
         return self._env.step(key, state, action, params)
 
-    
 class VecEnv(GymnaxWrapper):
     def __init__(self, env):
         super().__init__(env)
@@ -246,7 +236,6 @@ class LogWrapper(GymnaxWrapper):
         info["returned_episode"] = done
         return obs, state, reward, done, info
 
-
 @struct.dataclass
 class ConstantParamsEnvState:
     params: Any
@@ -266,42 +255,3 @@ class ConstantParams(GymnaxWrapper):
         obs, env_state, reward, done, info = self._env.step(key, state.env_state, action, params, self.params)
         return obs, ConstantParamsEnvState(self.params, env_state), reward, done, info
     
-
-    
-class ActorCritic(nn.Module):
-    action_dim: Sequence[int]
-    activation: str = "tanh"
-
-    @nn.compact
-    def __call__(self, x):
-        if self.activation == "relu":
-            activation = nn.relu
-        else:
-            activation = nn.tanh
-        actor_mean = nn.Dense(
-            256, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
-        )(x)
-        actor_mean = activation(actor_mean)
-        actor_mean = nn.Dense(
-            256, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
-        )(actor_mean)
-        actor_mean = activation(actor_mean)
-        actor_mean = nn.Dense(
-            self.action_dim, kernel_init=orthogonal(0.01), bias_init=constant(0.0)
-        )(actor_mean)
-        actor_logtstd = self.param("log_std", nn.initializers.zeros, (self.action_dim,))
-        pi = distrax.MultivariateNormalDiag(actor_mean, jnp.exp(actor_logtstd))
-
-        critic = nn.Dense(
-            256, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
-        )(x)
-        critic = activation(critic)
-        critic = nn.Dense(
-            256, kernel_init=orthogonal(np.sqrt(2)), bias_init=constant(0.0)
-        )(critic)
-        critic = activation(critic)
-        critic = nn.Dense(1, kernel_init=orthogonal(1.0), bias_init=constant(0.0))(
-            critic
-        )
-
-        return pi, jnp.squeeze(critic, axis=-1)

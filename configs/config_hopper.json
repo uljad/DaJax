@@ -1,0 +1,23 @@
+{
+    "LR": 0.0001,
+    "seed": 101,
+    "DEBUG": false,
+    "GAMMA": 0.99,
+    "VF_COEF": 0.5,
+    "CLIP_EPS": 0.2,
+    "ENT_COEF": 0,
+    "ENV_NAME": "hopper",
+    "NUM_ENVS": 2048,
+    "ANNEAL_LR": false,
+    "NUM_STEPS": 10,
+    "ACTIVATION": "tanh",
+    "GAE_LAMBDA": 0.95,
+    "MAX_GRAD_NORM": 0.5,
+    "NORMALIZE_ENV": false,
+    "UPDATE_EPOCHS": 4,
+    "EVAL_FREQUENCY": 100,
+    "forward_params": "ensembles/checkpoints/model_0_May-10-2024 15:43_no_expert.pkl",
+    "NUM_MINIBATCHES": 32,
+    "TOTAL_TIMESTEPS": 500000000.0,
+    "WORLD_MODEL_TRAINING": false
+}

@@ -1,0 +1,22 @@
+{
+    "LR": 0.0005,
+    "seed": 8,
+    "GAMMA": 0.99,
+    "ratio": 4,
+    "VF_COEF": 0.5,
+    "CLIP_EPS": 0.2,
+    "ENT_COEF": 0.01,
+    "ENV_NAME": "Pendulum-v1",
+    "NUM_ENVS": 32,
+    "ANNEAL_LR": true,
+    "NUM_STEPS": 20,
+    "ACTIVATION": "tanh",
+    "GAE_LAMBDA": 0.95,
+    "MAX_GRAD_NORM": 1,
+    "NUM_EVAL_ENVS": 1,
+    "UPDATE_EPOCHS": 4,
+    "EVAL_FREQUENCY": 10,
+    "NUM_MINIBATCHES": 4,
+    "TOTAL_TIMESTEPS": 50000000.0,
+    "WORLD_MODEL_TRAINING": false
+}

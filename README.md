@@ -10,7 +10,9 @@
 
 ## 📊 Data Collection
 
-DaJax provides robust tools for collecting and managing data from reinforcement learning environments. The collection system is built around two main components:
+DaJax provides robust tools for collecting and managing data from reinforcement learning environments.
+
+ **Tools to help you or your LLM of choice** to write better and more helpful data collection scripts:
 
 <p align="center">
   <img src="animation.gif" alt="Hopper Data" width="480" height="360">
@@ -19,19 +21,26 @@ DaJax provides robust tools for collecting and managing data from reinforcement 
   <em>Hopper Rollouts for 1.1 episodes at various policy checkpoint from randomly initialized policy</em>
 </p>
 
-### Collectors
-The `collect_` modules provide specialized collectors for different types of data:
+### Use
 
-- **Trajectory Collection**: Gathers complete sequences of states, actions, and rewards from environment rollouts
-- **State-Action Pairs**: Captures specific (state, action) tuples during policy execution
-- **Custom Metrics**: Allows collection of user-defined metrics and observations during environment interaction
+To get policy rollouts using an Actor-Critic network:
+
+[`collect_brax.py`](collect_brax.py) for environments based on the [Brax Physics Enginge](https://github.com/google/brax/tree/main)
+
+[`collect_discrete.py`](collect_discrete.py) for discrete (categorical) action space on environments using [Gymnax](https://github.com/RobertTLange/gymnax/tree/main)
+
+[`collect_continuous.py`](collect_continuous.py) for a continuous (multivariate Gaussian) action space on environments using [Gymnax](https://github.com/RobertTLange/gymnax/tree/main)
+
+
+
+
 
 ### Utils Integration
 The collectors leverage utility functions for:
 - Efficient JAX-based data buffering and storage
 - Vectorized environment stepping
 - Batched policy evaluation
-- Memory-efficient data management
+
 
 This modular design allows for flexible data collection while maintaining JAX's performance benefits and functional programming paradigm.
 
@@ -105,6 +114,7 @@ conda env create -f setup/environment.yml
 
 2. **Would be nice**:
    - [ ] Documentation for format conversion workflows
+   - [ ] Weights and Biases Integration
 
  😬 I will reorganize soon once I receive more feedback regarding the best ways people like to use such tools. 
 

@@ -12,6 +12,10 @@
 
 DaJax provides robust tools for collecting and managing data from reinforcement learning environments. The collection system is built around two main components:
 
+<p align="center">
+  <img src="animation_new.gif" alt="Data Collection Animation" wdith="480" height="360">
+</p>
+
 ### Collectors
 The `collect_` modules provide specialized collectors for different types of data:
 

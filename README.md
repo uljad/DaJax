@@ -2,6 +2,8 @@
  
 <p align="center">
     <img src="https://img.shields.io/badge/license-Apache2.0-blue.svg" /></a>
+    <a href= "https://api.wandb.ai/links/ub352/n19qn9x0">
+        <img src="https://img.shields.io/badge/Weights_&_Biases-FFCC33?style=for-the-badge&logo=WeightsAndBiases&logoColor=black" height=20 /></a>
 </p>
 
 <h3 align="center">
@@ -113,6 +115,7 @@ conda env create -f setup/environment.yml
    - [ ] One-step dynamics training data format
 
 2. **Would be nice**:
+
    - [ ] Documentation for format conversion workflows
    - [ ] Weights and Biases Integration
 
